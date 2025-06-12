@@ -1,0 +1,21 @@
+{
+  "name": "suroi-api",
+  "module": "src/server.ts",
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/server.ts",
+    "dev": "bun --watch src/server.ts",
+    "updateConfigSchema": "json2ts -i config.schema.json -o src/config.d.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.28.0",
+    "@types/bun": "latest",
+    "eslint": "^9.28.0",
+    "globals": "^16.2.0",
+    "json-schema-to-typescript": "^15.0.4",
+    "typescript-eslint": "^8.34.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

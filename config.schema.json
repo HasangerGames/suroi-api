@@ -1,0 +1,15 @@
+{
+    "type": "object",
+    "properties": {
+        "hostname": {
+            "description": "The hostname to host the server on.",
+            "type": "string"
+        },
+        "port": {
+            "description": "The port to host the server on.",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 65535
+        }
+    }
+}
