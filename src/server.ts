@@ -1,12 +1,10 @@
+import Elysia from "elysia";
 import Config from "../config.json";
-import type { ConfigSchema } from "./config";
+import api from "./api/api";
+import type { ConfigSchema } from "./types/config";
 
 const { hostname, port } = Config as ConfigSchema;
 
-Bun.serve({
-    hostname,
-    port,
-    routes: {
-        "/api/user/login":
-    }
-});
+new Elysia({
+    serve: { hostname }
+}).use(api).listen(port);

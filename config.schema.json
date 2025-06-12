@@ -10,6 +10,21 @@
             "type": "number",
             "minimum": 0,
             "maximum": 65535
+        },
+        "regions": {
+            "description": "Game servers.",
+            "type": "object",
+            "patternProperties": {
+                ".*": {
+                    "type": "object",
+                    "properties": {
+                        "address": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
-    }
+    },
+    "required": ["hostname", "port", "regions"]
 }
