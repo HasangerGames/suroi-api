@@ -1,32 +1,41 @@
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 model User {
-    id              String   @id @default(uuid()) @db.Uuid
-    guest           Boolean
-    username        String
-    email           String
-    hash            String
-    ip              String   @db.Inet
-    creation_date   DateTime @default(now())
-    last_login_date DateTime
-    stats           Stats?
+  user_id       BigInt         @unique // a snowflake id, so no need for a created_at field
+  guest         Boolean
+  username      String         @unique @db.Text
+  email         String         @unique @db.Text
+  session_token SessionTokens?
+  session_nonce String         @db.Text
+  nonce_root    String         @db.Text
+  salt          String         @db.Text
+  ip            String         @db.Inet
+  stats         Stats?
+}
+
+model SessionTokens {
+  user          User     @relation(fields: [user_id], references: [user_id])
+  user_id       BigInt   @unique
+  session_token String   @id @db.Text
+  created_at    DateTime @default(now()) @db.Timestamp()
+  expires_at    DateTime @db.Timestamp()
 }
 
 model Stats {
-    player   User   @relation(fields: [playerId], references: [id])
-    playerId String @unique @db.Uuid
-    kills    Int // *
-    deaths   Int // * may turn into models to categorize by
-    games    Int // * modes and/or weapons used
-    wins     Int // *
-    shots    Int
-    hits     Int // No one will get 2^53 - 1 shots or hits in a lifetime, no reason to use BigInt
-    playtime Int
+  player    User   @relation(fields: [player_id], references: [user_id])
+  player_id BigInt @unique
+  kills     Int // *
+  deaths    Int // * may turn into models to categorize by
+  games     Int // * modes and/or weapons used
+  wins      Int // *
+  shots     Int
+  hits      Int // No one will get 2^53 - 1 shots or hits in a lifetime, no reason to use BigInt
+  playtime  Int
 }
