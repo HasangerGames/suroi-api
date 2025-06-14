@@ -13,7 +13,7 @@ model User {
     username        String
     email           String
     hash            String
-    ip              String
+    ip              String   @db.Inet
     creation_date   DateTime @default(now())
     last_login_date DateTime
     stats           Stats?
