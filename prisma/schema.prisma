@@ -8,7 +8,7 @@ generator client {
 }
 
 model User {
-  user_id       BigInt         @unique // a snowflake id, so no need for a created_at field
+  user_id       String         @unique @default(cuid()) // cuid contains timestamp, so no need for creation date
   guest         Boolean
   username      String         @unique @db.Text
   email         String         @unique @db.Text
@@ -22,7 +22,7 @@ model User {
 
 model SessionTokens {
   user          User     @relation(fields: [user_id], references: [user_id])
-  user_id       BigInt   @unique
+  user_id       String   @unique @default(cuid())
   session_token String   @id @db.Text
   created_at    DateTime @default(now()) @db.Timestamp()
   expires_at    DateTime @db.Timestamp()
@@ -30,7 +30,7 @@ model SessionTokens {
 
 model Stats {
   player    User   @relation(fields: [player_id], references: [user_id])
-  player_id BigInt @unique
+  player_id String @unique @default(cuid())
   kills     Int // *
   deaths    Int // * may turn into models to categorize by
   games     Int // * modes and/or weapons used
