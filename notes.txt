@@ -1,0 +1,18 @@
+user_stats
+    user_id         UUID PRIMARY KEY
+    kills           JSON 		(solo, duo, squad) (by mode, weapon, JSON)
+    deaths          JSON		(solo, duo, squad)
+    games_played    JSON 	    (solo, duo, squad)
+    games_won       JSON 		(solo, duo, squad)
+    play_time       INTEGER 	(seconds)
+    damage_total    BIGINT
+    shots           BIGINT		(for accuracy)
+    hits            BIGINT		 ^^^^^^^^^^^^
+    revives         INTEGER
+    achievements    JSON	    (list of IDs)
+    unlocks         JSON		(unlocked items, etc.)
+    friends         JSON		(list of IDs)
+    clans           JSON
+    level           INTEGER		(blank for now)
+    points0         INTEGER		(blank for now, generic)
+    points1         INTEGER		(blank for now, generic)

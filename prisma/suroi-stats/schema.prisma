@@ -1,0 +1,112 @@
+datasource suroi_stats {
+    provider = "postgresql"
+    url      = env("STATS_DB_URL")
+}
+
+generator client {
+    provider = "prisma-client-js"
+    output   = "../../src/generated/stats-db-client"
+}
+
+enum Region {
+    NA
+    SA
+    EU
+    AS
+    OC
+}
+
+enum GameMode {
+    CLASSIC
+    HARVEST
+    HUNTED
+    FIFTY_VS_FIFTY
+    DESERT
+    INFECTION
+    WINTER
+}
+
+enum TeamMode {
+    SOLO
+    DUO
+    SQUAD
+}
+
+model UserStat {
+    user_id       String        @id @suroi_stats.Uuid
+    matches       Match[]
+    match_players MatchPlayer[]
+    achievements  Achievement[]
+    unlocks       Unlock[]
+    friends       String[]      @suroi_stats.Uuid
+    // clans        Clans[]
+}
+
+model Achievement {
+    id           String     @id @suroi_stats.Uuid
+    title        String     @unique
+    description  String
+    requirements Json
+    unlocks      Unlock[]
+    users        UserStat[]
+}
+
+model Unlock {
+    id             String       @id @suroi_stats.Uuid
+    name           String       @unique
+    users          UserStat[]
+    achievement    Achievement? @relation(fields: [achievement_id], references: [id])
+    achievement_id String       @suroi_stats.Uuid
+}
+
+model Kill {
+    id           String      @suroi_stats.Uuid // Killed
+    weapon       String
+    match_player MatchPlayer @relation(fields: [match_id, user_id], references: [match_id, user_id])
+    match_id     String      @suroi_stats.Uuid
+    user_id      String      @suroi_stats.Uuid // Killer
+
+    @@id([match_id, user_id, id])
+}
+
+model Damage {
+    amount       Int
+    weapon       String
+    match_player MatchPlayer @relation(fields: [match_id, user_id], references: [match_id, user_id])
+    match_id     String      @suroi_stats.Uuid
+    user_id      String      @suroi_stats.Uuid
+
+    @@id([match_id, user_id, weapon])
+}
+
+model Match {
+    match_id     String        @id @suroi_stats.Uuid
+    region       Region
+    mode_id      GameMode
+    team_mode_id TeamMode
+    start_time   DateTime
+    end_time     DateTime      @default(now())
+    users        UserStat[]
+    MatchPlayers MatchPlayer[]
+}
+
+model MatchPlayer {
+    match_id         String   @suroi_stats.Uuid
+    user_id          String   @suroi_stats.Uuid
+    kills            Int
+    damage_dealt     Int // For convenience
+    damage_taken     Int // For convenience
+    shots            Int // Accuracy
+    hits             Int // Accuracy
+    revives          Int
+    died             Boolean
+    killed_by        String?  @suroi_stats.Uuid
+    won              Boolean
+    time_survived__s Int
+    kill_details     Kill[] // Killed with what weapon
+    damage_details   Damage[] // Dealt with what weapon
+    match            Match    @relation(fields: [match_id], references: [match_id])
+    user             UserStat @relation(fields: [user_id], references: [user_id])
+
+    @@id([match_id, user_id])
+}

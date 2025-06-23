@@ -11,6 +11,11 @@
             "minimum": 0,
             "maximum": 65535
         },
+        "maxNameLen": {
+            "description": "Maximum allowed length of player names.",
+            "type": "number",
+            "minimum": 0
+        },
         "regions": {
             "description": "Game servers.",
             "type": "object",
@@ -26,5 +31,5 @@
             }
         }
     },
-    "required": ["hostname", "port", "regions"]
+    "required": ["hostname", "port", "maxNameLen", "regions"]
 }

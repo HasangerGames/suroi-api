@@ -1,0 +1,68 @@
+DATABASE suroi_users SCHEMA suroi
+users
+    id              UUID PRIMARY KEY,
+    is_temp         BOOLEAN DEFAULT TRUE,
+    username        TEXT UNIQUE NOT NULL,
+    email           TEXT NOT NULL,
+    salt            TEXT,
+    session_nonce   TEXT,
+    root_proof      TEXT,
+    totp_enabled    BOOLEAN DEFAULT FALSE,
+    totp_secret     TEXT DEFAULT "",
+    ip_addrs        JSON,
+    creation_date   DATE,
+    last_active     DATE,
+    punishments     JSON
+
+sessions
+    session_token   TEXT PRIMARY KEY,
+    user_id         UUID REFERENCES users(id),
+    expires_at      TIMESTAMP,
+    created_at      TIMESTAMP DEFAULT NOW()
+
+DATABASE suroi_stats SCHEMA suroi
+user_stats
+    user_id         UUID PRIMARY KEY,
+    games_played    JSON,
+    achievements    JSON,
+    unlocks         JSON,
+    friends         JSON,
+    clans           JSON
+
+achievements
+    id              UUID PRIMARY KEY,
+    title           TEXT UNIQUE NOT NULL,
+    description     TEXT,
+    requirements    JSON,
+    unlocks         JSON
+
+game_modes
+    mode_id         INTEGER PRIMARY KEY,
+    mode_name       TEXT UNIQUE NOT NULL
+
+team_modes
+    team_mode_id    INTEGER PRIMARY KEY,
+    mode_name       TEXT UNIQUE NOT NULL
+
+matches
+    match_id        UUID PRIMARY KEY,
+    mode_id         INTEGER REFERENCES game_modes(mode_id),
+    team_mode_id    INTEGER REFERENCES team_modes(team_mode_id),
+    start_time      TIMESTAMP NOT NULL,
+    end_time        TIMESTAMP NOT NULL DEFAULT NOW()
+
+match_players
+    match_id        UUID REFERENCES matches(match_id),
+    user_id         UUID REFERENCES players(user_id),
+    kills           INTEGER,
+    damage_dealt    INTEGER,
+    damage_taken    INTEGER,
+    shots           INTEGER,
+    hits            INTEGER,
+    revives         INTEGER,
+    died            BOOLEAN,
+    won             BOOLEAN,
+    time_survived   INTEGER,
+    kill_details    JSON,
+    damage_details  JSON,
+    PRIMARY KEY     (match_id, user_id)

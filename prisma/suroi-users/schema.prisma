@@ -1,0 +1,65 @@
+datasource suroi_users {
+    provider = "postgresql"
+    url      = env("USERS_DB_URL")
+}
+
+generator client {
+    provider = "prisma-client-js"
+    output   = "../../src/generated/users-db-client"
+}
+
+enum PunishmentType {
+    WARN
+    BAN
+}
+
+enum Role {
+    PLAYER
+    MODERATOR
+    ADMIN
+}
+
+model CoreUser {
+    id          String       @id @default(uuid()) @suroi_users.Uuid
+    ip_addrs    String[]     @suroi_users.Inet
+    user        User?
+    punishments Punishment[] @relation(name: "user")
+}
+
+model User {
+    core               CoreUser     @relation(fields: [id], references: [id])
+    id                 String       @id @default(uuid()) @suroi_users.Uuid
+    username           String       @unique
+    role               Role         @default(PLAYER)
+    email              String       @unique
+    salt               String
+    session_nonce      String
+    root_proof         String
+    totp_enabled       Boolean      @default(false)
+    totp_secret        String?
+    creation_date      DateTime     @default(now())
+    last_active        DateTime     @default(now())
+    sessions           Session[]
+    punishments_issued Punishment[] @relation(name: "issuer")
+}
+
+model Session {
+    token_hash String   @id
+    user       User     @relation(fields: [user_id], references: [id])
+    user_id    String   @suroi_users.Uuid
+    trusted    Boolean
+    expires    DateTime
+    created    DateTime @default(now())
+}
+
+model Punishment {
+    id        String         @id @default(uuid()) @suroi_users.Uuid
+    user      CoreUser       @relation(name: "user", fields: [user_id], references: [id])
+    user_id   String         @suroi_users.Uuid
+    type      PunishmentType
+    message   String
+    issuer    User           @relation(name: "issuer", fields: [issuer_id], references: [id])
+    issuer_id String         @suroi_users.Uuid
+    issued    DateTime       @default(now())
+    expires   DateTime?
+}

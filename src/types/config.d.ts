@@ -15,6 +15,10 @@ export interface ConfigSchema {
    */
   port: number;
   /**
+   * Maximum allowed length of player names.
+   */
+  maxNameLen: number;
+  /**
    * Game servers.
    */
   regions: {
