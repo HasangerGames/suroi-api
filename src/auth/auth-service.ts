@@ -1,163 +1,245 @@
-import { DBService } from "../db/db-service";
-import { Role } from "../generated/users-db-client";
 import crypto from "crypto";
+import Config from "../../config.json";
+import { DBService } from "../db/db-service";
+import { AuthenticationMethod } from "../generated/users-db-client";
+import type { ConfigSchema } from "../types/config";
+import type {
+    AuthParams,
+    AuthResponse,
+    AuthResult,
+    RegistrationParams,
+    RegistrationResponse,
+    SaltResponse,
+} from "./auth-types";
+
+const { authenticationMethod } = Config as ConfigSchema;
 
 export class AuthService {
     // default token lifetime in seconds
-    public static readonly DEFAULT_TOKEN_LIFETIME: number = 7200;
+    public static readonly DEFAULT_TOKEN_LIFETIME: number = 7200 * 1000;
     // token lifetime for "trusted computers"
-    public static readonly TRUSTED_TOKEN_LIFETIME: number = 86400 * 7;
+    public static readonly TRUSTED_TOKEN_LIFETIME: number = 86400 * 7 * 1000;
 
-    public static async sessionValid(session_token: string, ip?: string): Promise<boolean> {
+    public static async sessionValid(
+        session_token: string,
+        ip?: string
+    ): Promise<boolean> {
         return ip !== undefined && DBService.sessionValid(session_token, ip);
     }
 
     // IMPORTANT - this assumes the session given is valid.
-    public static async invalidateSession(session_token: string): Promise<void> {
+    public static async invalidateSession(
+        session_token: string
+    ): Promise<void> {
         DBService.deleteSession(session_token);
     }
 
     // IMPORTANT - this assumes the session given is valid.
-    public static async renewToken(session_token: string, trusted?: boolean): Promise<AuthResult> {
+    public static async renewToken(
+        session_token: string,
+        trusted?: boolean
+    ): Promise<AuthResult> {
         try {
             const session = (await DBService.deleteSession(session_token))!;
-            const { token, expires } = await this.generateSession(session.user_id, trusted ?? session.trusted);
+            await DBService.updateLastActive(session.user_id);
+            const { token, expires } = await this.generateSession(
+                session.user_id,
+                trusted ?? session.trusted ?? false
+            );
             return { success: true, token, expires };
         } catch (e) {
-            return { success: false, reason: e };
+            return { success: false, reason: "Error renewing token." };
         }
     }
 
-    // Returns a boolean indicating success.
     public static async register(
-        username: string, email: string,
-        w: string, sh: string[],
-        ih: string[], ip: string): Promise<AuthResult> {
-        let saltRes;
-        try {
-            saltRes = await this.getSalt();
-        } catch (e) {
-            return { success: false, reason: e };
+        params: RegistrationParams
+    ): Promise<AuthResult> {
+        if ("password" in params !== (authenticationMethod === "default")) {
+            return { success: false, reason: "Wrong authentication method." };
         }
 
-        const params: RegistrationParams = { w, s_salt: saltRes.salt, sh, ih };
-        const res: RegistrationResponse = await fetch(process.env.AUTH_SERVER_URL! + "/register", {
-            method: "POST",
-            body: JSON.stringify(params)
-        }).then(res => res.json()) as RegistrationResponse;
-        if (!res.success) {
-            return { success: false, reason: "Rejected by authentication server." };
+        const { username, email, ip } = params;
+        let args: Parameters<typeof DBService.createUser>;
+
+        if ("password" in params) {
+            // Default authentication method - password hash.
+            args = [
+                username,
+                email,
+                ip,
+                AuthenticationMethod.DEFAULT,
+                await Bun.password.hash(params.password),
+            ];
+        } else {
+            // 616 authentication method
+            const { w, sh, ih } = params;
+            let saltRes;
+            try {
+                saltRes = await this.getSalt();
+            } catch (e) {
+                return { success: false, reason: "Authentication error." };
+            }
+
+            const res: RegistrationResponse = (await fetch(
+                process.env.AUTH_SERVER_URL! + "/register",
+                {
+                    method: "POST",
+                    body: JSON.stringify({ w, s_salt: saltRes.salt, sh, ih }),
+                }
+            ).then(res => res.json())) as RegistrationResponse;
+            if (!res.success) {
+                return {
+                    success: false,
+                    reason: "Rejected by authentication server.",
+                };
+            }
+
+            args = [
+                username,
+                email,
+                ip,
+                AuthenticationMethod.MEOW,
+                res.rp!,
+                saltRes.salt,
+                res.st!,
+            ];
         }
 
         try {
-            const user_id = (await DBService.createUser(username, email, saltRes.salt, res.st!, res.rp!, ip)).id;
-            const { token, expires } = await this.generateSession(user_id, false);
+            const user_id = (await DBService.createUser(...args)).id;
+            const { token, expires } = await this.generateSession(
+                user_id,
+                false
+            );
             return { success: true, token, expires };
         } catch (e) {
-            return { success: false, reason: e };
+            return {
+                success: false,
+                reason: "Error creating user; maybe a user with the same name exists already?",
+            };
         }
     }
 
-    public static async authenticate(
-        user_id: string, trusted: boolean,
-        w: string, sh: string[],
-        ih: string[]): Promise<AuthResult> {
-        const user = await DBService.getUserByID(user_id);
+    public static async authenticate(params: AuthParams): Promise<AuthResult> {
+        if ("password" in params !== (authenticationMethod === "default")) {
+            return { success: false, reason: "Wrong authentication method." };
+        }
+
+        const { username, trusted } = params;
+        const user = await DBService.getUserByName(username);
         if (!user) {
             return {
                 success: false,
-                reason: "Could not find user in database."
+                reason: `Could not find user with name ${username} in the database.`,
             };
         }
 
-        const params: AuthParams = {
-            s_rp: user.root_proof,
-            s_st: user.session_nonce,
-            s_salt: user.salt,
-            w,
-            sh,
-            ih
-        };
-        const res: AuthResponse = await fetch(process.env.AUTH_SERVER_URL! + "/authenticate", {
-            method: "POST",
-            body: JSON.stringify(params)
-        }).then(res => res.json()) as AuthResponse;
-        if (!res.success) {
-            return {
-                success: false,
-                reason: "Could not authenticate"
-            };
+        if ("password" in params) {
+            if (await Bun.password.verify(params.password, user.hash_or_rp)) {
+                try {
+                    await DBService.updateLastActive(user.id);
+                    const { token, expires } = await this.generateSession(
+                        user.id,
+                        trusted
+                    );
+                    return { success: true, token, expires };
+                } catch (e) {
+                    return {
+                        success: false,
+                        reason: "Error creating session.",
+                    };
+                }
+            } else {
+                return {
+                    success: false,
+                    reason: "Wrong password.",
+                };
+            }
+        } else {
+            const { w, sh, ih } = params;
+            const res: AuthResponse = (await fetch(
+                process.env.AUTH_SERVER_URL! + "/authenticate",
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        s_rp: user.hash_or_rp,
+                        s_st: user.session_nonce,
+                        s_salt: user.salt,
+                        w,
+                        sh,
+                        ih,
+                    }),
+                }
+            ).then(res => res.json())) as AuthResponse;
+            if (!res.success) {
+                return {
+                    success: false,
+                    reason: "Could not authenticate.",
+                };
+            }
+
+            try {
+                await DBService.updateAuthInfo(username, res.st!, res.rp!);
+                await DBService.updateLastActive(user.id);
+                const { token, expires } = await this.generateSession(
+                    user.id,
+                    trusted
+                );
+                return { success: true, token, expires };
+            } catch (e) {
+                return {
+                    success: false,
+                    reason: "Error creating session.",
+                };
+            }
+        }
+    }
+
+    public static async deleteUser(params: AuthParams): Promise<AuthResult> {
+        const auth = await this.authenticate(params);
+        if (!auth.success) {
+            return { success: false, reason: "Invalid credentials." };
         }
 
         try {
-            await DBService.updateAuthInfo(user_id, res.st!, res.rp!);
-            const { token, expires } = await this.generateSession(user_id, trusted);
-            return { success: true, token, expires };
-        } catch (e: unknown) {
-            return {
-                success: false,
-                reason: e
-            };
+            const user_id = await DBService.getIDFromName(params.username);
+            if (!user_id) {
+                return {
+                    success: false,
+                    reason: `No user with name ${params.username}`,
+                };
+            }
+            await DBService.deleteUser(user_id)!;
+            return { success: true };
+        } catch (e) {
+            return { success: false, reason: "Database operation failed." };
         }
     }
 
-    private static generateSessionID() {
-        return crypto.randomUUID();
-    }
-
     private static async getSalt(): Promise<SaltResponse> {
-        return await fetch(process.env.AUTH_SERVER_URL! + "/salt").then(res => {
-            if (!res.ok) {
-                throw new Error("Failed to get salt.");
+        return (await fetch(process.env.AUTH_SERVER_URL! + "/salt").then(
+            res => {
+                if (!res.ok) {
+                    throw new Error("Failed to get salt.");
+                }
+                return res.json();
             }
-            return res.json();
-        }) as SaltResponse;
+        )) as SaltResponse;
     }
 
-    private static async generateSession(user_id: string, trusted: boolean): Promise<{ token: string, expires: Date }> {
-        const token = this.generateSessionID();
-        const expires = new Date(Date.now() + (trusted ? this.TRUSTED_TOKEN_LIFETIME : this.DEFAULT_TOKEN_LIFETIME));
-        // Default to untrusted.
+    private static async generateSession(
+        user_id: string,
+        trusted: boolean
+    ): Promise<{ token: string; expires: Date }> {
+        const token = crypto.randomUUID();
+        const expires = new Date(
+            Date.now() +
+                (trusted
+                    ? this.TRUSTED_TOKEN_LIFETIME
+                    : this.DEFAULT_TOKEN_LIFETIME)
+        );
         await DBService.createSession(user_id, token, trusted, expires);
         return { token, expires };
     }
 }
-
-export type AuthResult = {
-    success: boolean;
-    token?: string;
-    expires?: Date;
-    reason?: unknown;
-};
-
-export type AuthParams = {
-    s_rp: string;
-    s_st: string;
-    s_salt: string;
-    w: string;
-    sh: string[];
-    ih: string[];
-};
-
-export type AuthResponse = {
-    success: boolean;
-    st?: string;
-    rp?: string;
-};
-
-export type RegistrationParams = {
-    w: string;
-    s_salt: string;
-    sh: string[];
-    ih: string[];
-};
-
-export type RegistrationResponse = {
-    success: boolean;
-    st?: string;
-    rp?: string;
-};
-
-export type SaltResponse = {
-    salt: string;
-};

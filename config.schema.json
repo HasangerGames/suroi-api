@@ -16,6 +16,12 @@
             "type": "number",
             "minimum": 0
         },
+        "authenticationMethod": {
+            "description": "Which authentication method to use for database",
+            "type": "string",
+            "enum": ["default", "616"],
+            "default": "default"
+        },
         "regions": {
             "description": "Game servers.",
             "type": "object",
@@ -31,5 +37,5 @@
             }
         }
     },
-    "required": ["hostname", "port", "maxNameLen", "regions"]
+    "required": ["hostname", "port", "maxNameLen", "authenticationMethod", "regions"]
 }

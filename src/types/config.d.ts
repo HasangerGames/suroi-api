@@ -6,30 +6,34 @@
  */
 
 export interface ConfigSchema {
-  /**
-   * The hostname to host the server on.
-   */
-  hostname: string;
-  /**
-   * The port to host the server on.
-   */
-  port: number;
-  /**
-   * Maximum allowed length of player names.
-   */
-  maxNameLen: number;
-  /**
-   * Game servers.
-   */
-  regions: {
     /**
-     * This interface was referenced by `undefined`'s JSON-Schema definition
-     * via the `patternProperty` ".*".
+     * The hostname to host the server on.
      */
-    [k: string]: {
-      address?: string;
-      [k: string]: unknown;
+    hostname: string;
+    /**
+     * The port to host the server on.
+     */
+    port: number;
+    /**
+     * Maximum allowed length of player names.
+     */
+    maxNameLen: number;
+    /**
+     * Which authentication method to use for database
+     */
+    authenticationMethod: "default" | "616";
+    /**
+     * Game servers.
+     */
+    regions: {
+        /**
+         * This interface was referenced by `undefined`'s JSON-Schema definition
+         * via the `patternProperty` ".*".
+         */
+        [k: string]: {
+            address?: string;
+            [k: string]: unknown;
+        };
     };
-  };
-  [k: string]: unknown;
+    [k: string]: unknown;
 }

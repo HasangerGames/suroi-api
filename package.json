@@ -9,7 +9,8 @@
     "postinstall": "bunx prisma generate --schema ./prisma/suroi-users/schema.prisma && bunx prisma generate --schema ./prisma/suroi-stats/schema.prisma",
     "generate": "bunx prisma generate --schema ./prisma/suroi-users/schema.prisma && bunx prisma generate --schema ./prisma/suroi-stats/schema.prisma",
     "migrate": "bunx prisma migrate dev --schema ./prisma/suroi-users/schema.prisma && bunx prisma migrate dev --schema ./prisma/suroi-stats/schema.prisma",
-    "deploy": "bunx prisma migrate deploy --schema ./prisma/suroi-users/schema.prisma && bunx prisma migrate deploy --schema ./prisma/suroi-stats/schema.prisma"
+    "deploy": "bunx prisma migrate deploy --schema ./prisma/suroi-users/schema.prisma && bunx prisma migrate deploy --schema ./prisma/suroi-stats/schema.prisma",
+    "pretty": "prettier --write '**/*.ts'"
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",

@@ -19,6 +19,11 @@ enum Role {
     ADMIN
 }
 
+enum AuthenticationMethod {
+    DEFAULT
+    MEOW
+}
+
 model CoreUser {
     id          String       @id @default(uuid()) @suroi_users.Uuid
     ip_addrs    String[]     @suroi_users.Inet
@@ -27,20 +32,21 @@ model CoreUser {
 }
 
 model User {
-    core               CoreUser     @relation(fields: [id], references: [id])
-    id                 String       @id @default(uuid()) @suroi_users.Uuid
-    username           String       @unique
-    role               Role         @default(PLAYER)
-    email              String       @unique
-    salt               String
-    session_nonce      String
-    root_proof         String
-    totp_enabled       Boolean      @default(false)
+    core               CoreUser             @relation(fields: [id], references: [id])
+    id                 String               @id @default(uuid()) @suroi_users.Uuid
+    username           String               @unique
+    role               Role                 @default(PLAYER)
+    email              String               @unique
+    last_auth_method   AuthenticationMethod
+    salt               String?
+    session_nonce      String?
+    hash_or_rp         String
+    totp_enabled       Boolean              @default(false)
     totp_secret        String?
-    creation_date      DateTime     @default(now())
-    last_active        DateTime     @default(now())
+    creation_date      DateTime             @default(now())
+    last_active        DateTime             @default(now())
     sessions           Session[]
-    punishments_issued Punishment[] @relation(name: "issuer")
+    punishments_issued Punishment[]         @relation(name: "issuer")
 }
 
 model Session {
