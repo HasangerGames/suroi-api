@@ -1,6 +1,12 @@
 import * as Stats from "../generated/stats-db-client";
 import * as Users from "../generated/users-db-client";
 
+["exit", "SIGINT", "SIGUSR1", "SIGUSR2", "uncaughtException"].forEach(e => {
+    process.on(e, () => {
+        DBService.$closeConnections();
+    });
+});
+
 export class DBService {
     private static _statsClient: Stats.PrismaClient = new Stats.PrismaClient();
     private static _usersClient: Users.PrismaClient = new Users.PrismaClient();
@@ -400,6 +406,11 @@ export class DBService {
             // Record not found.
             return null;
         }
+    }
+
+    public static $closeConnections() {
+        DBService._statsClient.$disconnect();
+        DBService._usersClient.$disconnect();
     }
 }
 

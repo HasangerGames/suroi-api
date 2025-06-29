@@ -37,6 +37,7 @@ model User {
     username           String               @unique
     role               Role                 @default(PLAYER)
     email              String               @unique
+    email_verified     Boolean              @default(false)
     last_auth_method   AuthenticationMethod
     salt               String?
     session_nonce      String?
