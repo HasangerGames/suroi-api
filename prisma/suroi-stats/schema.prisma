@@ -60,21 +60,57 @@ model Unlock {
 }
 
 model Kill {
-    id           String      @suroi_stats.Uuid // Killed
     weapon       String
-    match_player MatchPlayer @relation(fields: [match_id, user_id], references: [match_id, user_id])
-    match_id     String      @suroi_stats.Uuid
-    user_id      String      @suroi_stats.Uuid // Killer
+    timestamp    DateTime
+    killer       MatchPlayer? @relation(name: "killer", fields: [match_id, killer_id, killer_count], references: [match_id, user_id, count])
+    match_id     String       @suroi_stats.Uuid
+    killer_id    String       @suroi_stats.Uuid // Killer
+    killer_count Int          @suroi_stats.SmallInt
+    killed       MatchPlayer? @relation(name: "killed", fields: [match_id, killed_id, killed_count], references: [match_id, user_id, count])
+    killed_id    String       @suroi_stats.Uuid // Killed
+    killed_count Int          @suroi_stats.SmallInt
+    assist       Assist?
 
-    @@id([match_id, user_id, id])
+    // Since each player can only be killed once per join,
+    // even a second join of the same match.
+    @@id([match_id, killed_id, killed_count])
+}
+
+model Revive {
+    timestamp     DateTime
+    reviver       MatchPlayer  @relation(name: "revives", fields: [match_id, reviver_id, reviver_count], references: [match_id, user_id, count], onDelete: Cascade)
+    match_id      String       @suroi_stats.Uuid
+    reviver_id    String       @suroi_stats.Uuid // Reviver
+    reviver_count Int          @suroi_stats.SmallInt
+    revived       MatchPlayer? @relation(name: "revived_by", fields: [match_id, revived_id, revived_count], references: [match_id, user_id, count])
+    revived_id    String       @suroi_stats.Uuid // Revived
+    revived_count Int          @suroi_stats.SmallInt
+
+    // Timestamp works for this because you can never revive two people at the same time.
+    @@id([match_id, reviver_id, reviver_count, timestamp])
+}
+
+model Assist {
+    timestamp      DateTime
+    assister       MatchPlayer @relation(fields: [match_id, assister_id, assister_count], references: [match_id, user_id, count], onDelete: Cascade)
+    match_id       String      @suroi_stats.Uuid
+    assister_id    String      @suroi_stats.Uuid
+    assister_count Int         @suroi_stats.SmallInt
+    kill           Kill        @relation(fields: [match_id, killed_id, killed_count], references: [match_id, killed_id, killed_count], onDelete: Cascade)
+    killed_id      String      @suroi_stats.Uuid
+    killed_count   Int         @suroi_stats.SmallInt
+
+    @@id([match_id, assister_id, killed_id, killed_count])
+    @@unique([match_id, killed_id, killed_count])
 }
 
 model Damage {
-    amount       Int
-    weapon       String
-    match_player MatchPlayer @relation(fields: [match_id, user_id], references: [match_id, user_id])
+    match_player MatchPlayer @relation(fields: [match_id, user_id, count], references: [match_id, user_id, count], onDelete: Cascade)
     match_id     String      @suroi_stats.Uuid
     user_id      String      @suroi_stats.Uuid
+    count        Int         @suroi_stats.SmallInt
+    amount       Int
+    weapon       String
 
     @@id([match_id, user_id, weapon])
 }
@@ -83,9 +119,9 @@ model Match {
     match_id     String        @id @suroi_stats.Uuid
     region       Region
     mode_id      GameMode
-    team_mode_id TeamMode
+    team_mode    TeamMode
     start_time   DateTime
-    end_time     DateTime      @default(now())
+    end_time     DateTime
     users        UserStat[]
     MatchPlayers MatchPlayer[]
 }
@@ -93,20 +129,20 @@ model Match {
 model MatchPlayer {
     match_id         String   @suroi_stats.Uuid
     user_id          String   @suroi_stats.Uuid
-    kills            Int
-    damage_dealt     Int // For convenience
-    damage_taken     Int // For convenience
+    // Count is for when a player gets in the same game more than once.
+    count            Int      @default(autoincrement()) @suroi_stats.SmallInt
     shots            Int // Accuracy
     hits             Int // Accuracy
-    revives          Int
-    died             Boolean
-    killed_by        String?  @suroi_stats.Uuid
     won              Boolean
     time_survived__s Int
-    kill_details     Kill[] // Killed with what weapon
-    damage_details   Damage[] // Dealt with what weapon
-    match            Match    @relation(fields: [match_id], references: [match_id])
-    user             UserStat @relation(fields: [user_id], references: [user_id])
+    kills            Kill[]   @relation(name: "killer")
+    death            Kill?    @relation(name: "killed")
+    revives          Revive[] @relation(name: "revives")
+    revived_by       Revive[] @relation(name: "revived_by")
+    assists          Assist[]
+    damage           Damage[]
+    match            Match?   @relation(fields: [match_id], references: [match_id])
+    user             UserStat @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 
-    @@id([match_id, user_id])
+    @@id([match_id, user_id, count])
 }

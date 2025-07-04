@@ -32,7 +32,7 @@ model CoreUser {
 }
 
 model User {
-    core               CoreUser             @relation(fields: [id], references: [id])
+    core               CoreUser             @relation(fields: [id], references: [id], onDelete: Cascade)
     id                 String               @id @default(uuid()) @suroi_users.Uuid
     username           String               @unique
     role               Role                 @default(PLAYER)
@@ -52,7 +52,7 @@ model User {
 
 model Session {
     token_hash String   @id
-    user       User     @relation(fields: [user_id], references: [id])
+    user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
     user_id    String   @suroi_users.Uuid
     trusted    Boolean
     expires    DateTime
@@ -61,7 +61,7 @@ model Session {
 
 model Punishment {
     id        String         @id @default(uuid()) @suroi_users.Uuid
-    user      CoreUser       @relation(name: "user", fields: [user_id], references: [id])
+    user      CoreUser       @relation(name: "user", fields: [user_id], references: [id], onDelete: Cascade)
     user_id   String         @suroi_users.Uuid
     type      PunishmentType
     message   String
