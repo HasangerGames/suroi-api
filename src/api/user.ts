@@ -9,7 +9,8 @@ import {
     TUpdateEmailBody,
     TUpdateNameBody,
 } from "../auth/auth-types";
-import { DBService } from "../db/db-service";
+import { UserDBService } from "../db/user-db-service";
+import getStats from "./stats/get-stats";
 
 export default new Elysia({
     prefix: "/user",
@@ -51,8 +52,8 @@ export default new Elysia({
     )
     .post(
         "/login",
-        async ({ body, cookie: { session_token }, status }) => {
-            const auth = await AuthService.authenticate(body);
+        async ({ body, cookie: { session_token }, ip, status }) => {
+            const auth = await AuthService.authenticate({ ...body, ip });
             if (!auth.success) {
                 return status(401, auth.reason);
             }
@@ -105,7 +106,7 @@ export default new Elysia({
     .put(
         "/updateName",
         async ({ body, cookie: { session_token }, status }) => {
-            const user_id = await DBService.getIDFromSession(
+            const user_id = await UserDBService.getIDFromSession(
                 session_token.value
             );
             if (user_id === null) {
@@ -113,7 +114,7 @@ export default new Elysia({
             }
 
             try {
-                DBService.updateUsername(user_id, body);
+                UserDBService.updateUsername(user_id, body);
             } catch (e) {
                 return status(400, "User does not exist.");
             }
@@ -125,7 +126,7 @@ export default new Elysia({
     .put(
         "/updateEmail",
         async ({ body, cookie: { session_token }, status }) => {
-            const user_id = await DBService.getIDFromSession(
+            const user_id = await UserDBService.getIDFromSession(
                 session_token.value
             );
             if (user_id === null) {
@@ -133,7 +134,7 @@ export default new Elysia({
             }
 
             try {
-                DBService.updateEmail(user_id, body);
+                UserDBService.updateEmail(user_id, body);
             } catch (e) {
                 return status(400, "User does not exist.");
             }
@@ -144,9 +145,10 @@ export default new Elysia({
     )
     .delete(
         "/",
-        async ({ body, cookie: { session_token }, status }) => {
+        async ({ body, cookie: { session_token }, ip, status }) => {
             const res = await AuthService.deleteUser({
                 ...body,
+                ip,
                 trusted: false,
             });
             if (!res.success) {
@@ -156,4 +158,5 @@ export default new Elysia({
             session_token.remove();
         },
         { body: TDeleteUserBody }
-    );
+    )
+    .use(getStats);

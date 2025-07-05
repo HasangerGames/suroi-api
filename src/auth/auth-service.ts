@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import Config from "../../config.json";
-import { DBService } from "../db/db-service";
+import { UserDBService } from "../db/user-db-service";
 import { AuthenticationMethod } from "../generated/users-db-client";
 import type { ConfigSchema } from "../types/config";
 import type {
@@ -12,7 +12,7 @@ import type {
     SaltResponse,
 } from "./auth-types";
 
-const { authenticationMethod } = Config as ConfigSchema;
+const { authenticationMethod, authServer } = Config as ConfigSchema;
 
 export class AuthService {
     // default token lifetime in seconds
@@ -24,14 +24,16 @@ export class AuthService {
         session_token: string,
         ip?: string
     ): Promise<boolean> {
-        return ip !== undefined && DBService.sessionValid(session_token, ip);
+        return (
+            ip !== undefined && UserDBService.sessionValid(session_token, ip)
+        );
     }
 
     // IMPORTANT - this assumes the session given is valid.
     public static async invalidateSession(
         session_token: string
     ): Promise<void> {
-        DBService.deleteSession(session_token);
+        UserDBService.deleteSession(session_token);
     }
 
     // IMPORTANT - this assumes the session given is valid.
@@ -40,8 +42,8 @@ export class AuthService {
         trusted?: boolean
     ): Promise<AuthResult> {
         try {
-            const session = (await DBService.deleteSession(session_token))!;
-            await DBService.updateLastActive(session.user_id);
+            const session = (await UserDBService.deleteSession(session_token))!;
+            await UserDBService.updateLastActive(session.user_id);
             const { token, expires } = await this.generateSession(
                 session.user_id,
                 trusted ?? session.trusted ?? false
@@ -60,7 +62,7 @@ export class AuthService {
         }
 
         const { username, email, ip } = params;
-        let args: Parameters<typeof DBService.createUser>;
+        let args: Parameters<typeof UserDBService.createUser>;
 
         if ("password" in params) {
             // Default authentication method - password hash.
@@ -82,7 +84,7 @@ export class AuthService {
             }
 
             const res: RegistrationResponse = (await fetch(
-                process.env.AUTH_SERVER_URL! + "/register",
+                authServer + "/register",
                 {
                     method: "POST",
                     body: JSON.stringify({ w, s_salt: saltRes.salt, sh, ih }),
@@ -107,7 +109,7 @@ export class AuthService {
         }
 
         try {
-            const user_id = (await DBService.createUser(...args)).id;
+            const user_id = (await UserDBService.createUser(...args)).id;
             const { token, expires } = await this.generateSession(
                 user_id,
                 false
@@ -126,8 +128,8 @@ export class AuthService {
             return { success: false, reason: "Wrong authentication method." };
         }
 
-        const { username, trusted } = params;
-        const user = await DBService.getUserByName(username);
+        const { username, trusted, ip } = params;
+        const user = await UserDBService.getUserByName(username);
         if (!user) {
             return {
                 success: false,
@@ -138,7 +140,8 @@ export class AuthService {
         if ("password" in params) {
             if (await Bun.password.verify(params.password, user.hash_or_rp)) {
                 try {
-                    await DBService.updateLastActive(user.id);
+                    await UserDBService.updateLastActive(user.id);
+                    await UserDBService.updateIPs(user.id, ip);
                     const { token, expires } = await this.generateSession(
                         user.id,
                         trusted
@@ -159,7 +162,7 @@ export class AuthService {
         } else {
             const { w, sh, ih } = params;
             const res: AuthResponse = (await fetch(
-                process.env.AUTH_SERVER_URL! + "/authenticate",
+                authServer + "/authenticate",
                 {
                     method: "POST",
                     body: JSON.stringify({
@@ -180,8 +183,13 @@ export class AuthService {
             }
 
             try {
-                await DBService.updateAuthInfo(username, res.st!, res.rp!);
-                await DBService.updateLastActive(user.id);
+                await UserDBService.updateAuthInfo(
+                    username,
+                    res.rp!,
+                    ip,
+                    res.st!
+                );
+                await UserDBService.updateLastActive(user.id);
                 const { token, expires } = await this.generateSession(
                     user.id,
                     trusted
@@ -203,14 +211,14 @@ export class AuthService {
         }
 
         try {
-            const user_id = await DBService.getIDFromName(params.username);
+            const user_id = await UserDBService.getIDFromName(params.username);
             if (!user_id) {
                 return {
                     success: false,
                     reason: `No user with name ${params.username}`,
                 };
             }
-            await DBService.deleteUser(user_id)!;
+            await UserDBService.deleteUser(user_id)!;
             return { success: true };
         } catch (e) {
             return { success: false, reason: "Database operation failed." };
@@ -218,14 +226,12 @@ export class AuthService {
     }
 
     private static async getSalt(): Promise<SaltResponse> {
-        return (await fetch(process.env.AUTH_SERVER_URL! + "/salt").then(
-            res => {
-                if (!res.ok) {
-                    throw new Error("Failed to get salt.");
-                }
-                return res.json();
+        return (await fetch(authServer + "/salt").then(res => {
+            if (!res.ok) {
+                throw new Error("Failed to get salt.");
             }
-        )) as SaltResponse;
+            return res.json();
+        })) as SaltResponse;
     }
 
     private static async generateSession(
@@ -239,7 +245,7 @@ export class AuthService {
                     ? this.TRUSTED_TOKEN_LIFETIME
                     : this.DEFAULT_TOKEN_LIFETIME)
         );
-        await DBService.createSession(user_id, token, trusted, expires);
+        await UserDBService.createSession(user_id, token, trusted, expires);
         return { token, expires };
     }
 }

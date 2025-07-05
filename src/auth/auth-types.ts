@@ -14,6 +14,7 @@ export type AuthResult = {
 export type AuthParams = {
     username: string;
     trusted: boolean;
+    ip: string;
 } & (
     | {
           w: string;

@@ -1,20 +1,18 @@
-import * as Stats from "../generated/stats-db-client";
 import * as Users from "../generated/users-db-client";
 
 ["exit", "SIGINT", "SIGUSR1", "SIGUSR2", "uncaughtException"].forEach(e => {
     process.on(e, () => {
-        DBService.$closeConnections();
+        UserDBService.$closeConnections();
     });
 });
 
-export class DBService {
-    private static _statsClient: Stats.PrismaClient = new Stats.PrismaClient();
-    private static _usersClient: Users.PrismaClient = new Users.PrismaClient();
+export class UserDBService {
+    static #client: Users.PrismaClient = new Users.PrismaClient();
 
     // Create
 
     public static async createTempUser(ip: string): Promise<Users.CoreUser> {
-        return await DBService._usersClient.coreUser.create({
+        return await UserDBService.#client.coreUser.create({
             data: {
                 ip_addrs: [ip],
             },
@@ -31,7 +29,7 @@ export class DBService {
         session_nonce?: string,
         role: Users.Role = Users.Role.PLAYER
     ): Promise<Users.User> {
-        return await DBService._usersClient.user.create({
+        return await UserDBService.#client.user.create({
             data: {
                 username,
                 role,
@@ -53,7 +51,7 @@ export class DBService {
         trusted: boolean,
         expires: Date
     ): Promise<Users.Session> {
-        return await DBService._usersClient.session.create({
+        return await UserDBService.#client.session.create({
             data: {
                 user: {
                     connect: {
@@ -77,7 +75,7 @@ export class DBService {
         issuer_id: string,
         expires?: Date
     ): Promise<Users.Punishment> {
-        return await DBService._usersClient.punishment.create({
+        return await UserDBService.#client.punishment.create({
             data: {
                 type,
                 message,
@@ -99,13 +97,13 @@ export class DBService {
     // Read
 
     public static async userExists(username: string): Promise<boolean> {
-        return DBService.getIDFromName(username) !== null;
+        return UserDBService.getIDFromName(username) !== null;
     }
 
     public static async getIDFromName(
         username: string
     ): Promise<string | null> {
-        return await DBService._usersClient.user
+        return await UserDBService.#client.user
             .findUnique({
                 where: { username },
             })
@@ -117,7 +115,7 @@ export class DBService {
     ): Promise<string | null> {
         return (
             (
-                await DBService._usersClient.session.findUnique({
+                await UserDBService.#client.session.findUnique({
                     where: {
                         token_hash: Bun.CryptoHasher.hash(
                             "sha384",
@@ -139,7 +137,7 @@ export class DBService {
     public static async getUserByName(
         username: string
     ): Promise<Users.User | null> {
-        return await DBService._usersClient.user.findUnique({
+        return await UserDBService.#client.user.findUnique({
             where: { username },
         });
     }
@@ -147,7 +145,7 @@ export class DBService {
     public static async getUserByID(
         user_id: string
     ): Promise<Users.User | null> {
-        return await DBService._usersClient.user.findUnique({
+        return await UserDBService.#client.user.findUnique({
             where: {
                 id: user_id,
             },
@@ -162,7 +160,7 @@ export class DBService {
             "sha384",
             session_token
         ).toString();
-        const session = await DBService._usersClient.session.findUnique({
+        const session = await UserDBService.#client.session.findUnique({
             where: {
                 token_hash,
                 expires: { gt: new Date() },
@@ -186,7 +184,7 @@ export class DBService {
         user_id: string
     ): Promise<string[]> {
         const NOW = new Date();
-        return await DBService._usersClient.session
+        return await UserDBService.#client.session
             .findMany({
                 select: {
                     token_hash: true,
@@ -207,7 +205,7 @@ export class DBService {
     public static async getAllSessionTokens(
         user_id: string
     ): Promise<Users.Session[]> {
-        return await DBService._usersClient.session.findMany({
+        return await UserDBService.#client.session.findMany({
             where: { user_id },
         });
     }
@@ -216,7 +214,7 @@ export class DBService {
         user_id: string
     ): Promise<Users.Punishment[]> {
         const NOW = new Date();
-        return await DBService._usersClient.punishment.findMany({
+        return await UserDBService.#client.punishment.findMany({
             where: {
                 user_id,
                 OR: [
@@ -233,7 +231,7 @@ export class DBService {
     public static async getAllPunishments(
         user_id: string
     ): Promise<Users.Punishment[]> {
-        return await DBService._usersClient.punishment.findMany({
+        return await UserDBService.#client.punishment.findMany({
             where: { user_id },
         });
     }
@@ -244,8 +242,15 @@ export class DBService {
         user_id: string,
         ip: string
     ): Promise<Users.CoreUser> {
-        return await DBService._usersClient.coreUser.update({
-            where: { id: user_id },
+        return await UserDBService.#client.coreUser.update({
+            where: {
+                id: user_id,
+                NOT: {
+                    ip_addrs: {
+                        has: ip,
+                    },
+                },
+            },
             data: { ip_addrs: { push: ip } },
         });
     }
@@ -254,14 +259,14 @@ export class DBService {
         user_id: string,
         new_username: string
     ): Promise<Users.User> {
-        return await DBService._usersClient.user.update({
+        return await UserDBService.#client.user.update({
             where: { id: user_id },
             data: { username: new_username },
         });
     }
 
     public static async updateLastActive(user_id: string): Promise<Users.User> {
-        return await DBService._usersClient.user.update({
+        return await UserDBService.#client.user.update({
             where: { id: user_id },
             data: { last_active: new Date() },
         });
@@ -270,15 +275,32 @@ export class DBService {
     public static async updateAuthInfo(
         user_id: string,
         hash_or_rp: string,
+        ip?: string,
         session_nonce?: string,
         salt?: string
     ): Promise<Users.User> {
-        return await DBService._usersClient.user.update({
+        return await UserDBService.#client.user.update({
             where: { id: user_id },
             data: {
                 salt,
                 session_nonce,
                 hash_or_rp,
+                core: {
+                    update: {
+                        where: {
+                            NOT: {
+                                ip_addrs: {
+                                    has: ip,
+                                },
+                            },
+                        },
+                        data: {
+                            ip_addrs: {
+                                push: ip,
+                            },
+                        },
+                    },
+                },
             },
         });
     }
@@ -288,7 +310,7 @@ export class DBService {
         totp_enabled: boolean,
         totp_secret: string
     ): Promise<Users.User> {
-        return await DBService._usersClient.user.update({
+        return await UserDBService.#client.user.update({
             where: { id: user_id },
             data: {
                 totp_enabled,
@@ -301,7 +323,7 @@ export class DBService {
         user_id: string,
         new_email: string
     ): Promise<Users.User> {
-        return await DBService._usersClient.user.update({
+        return await UserDBService.#client.user.update({
             where: { id: user_id },
             data: { email: new_email },
         });
@@ -311,7 +333,7 @@ export class DBService {
         user_id: string,
         new_role: Users.Role
     ): Promise<Users.User> {
-        return await DBService._usersClient.user.update({
+        return await UserDBService.#client.user.update({
             where: { id: user_id },
             data: { role: new_role },
         });
@@ -324,7 +346,7 @@ export class DBService {
      * Returns the number of deleted records.
      */
     public static async clearOldSessions(user_id?: string): Promise<number> {
-        return await DBService._usersClient.session
+        return await UserDBService.#client.session
             .deleteMany({
                 where: {
                     expires: {
@@ -337,7 +359,7 @@ export class DBService {
     }
 
     public static async clearUserSessions(user_id: string): Promise<number> {
-        return await DBService._usersClient.session
+        return await UserDBService.#client.session
             .deleteMany({
                 where: { user_id },
             })
@@ -345,7 +367,7 @@ export class DBService {
     }
 
     public static async clearOldPunishments(user_id?: string): Promise<number> {
-        return await DBService._usersClient.punishment
+        return await UserDBService.#client.punishment
             .deleteMany({
                 where: {
                     expires: {
@@ -358,7 +380,7 @@ export class DBService {
     }
 
     public static async clearUserPunishments(user_id: string): Promise<number> {
-        return await DBService._usersClient.punishment
+        return await UserDBService.#client.punishment
             .deleteMany({
                 where: { user_id },
             })
@@ -370,7 +392,7 @@ export class DBService {
         user_id: string
     ): Promise<Users.User | null> {
         const user: Users.User | null =
-            await DBService._usersClient.user.findUnique({
+            await UserDBService.#client.user.findUnique({
                 where: { id: user_id },
                 include: {
                     core: {
@@ -381,10 +403,12 @@ export class DBService {
         if (!user) {
             return null;
         }
-        await DBService.clearUserSessions(user_id);
-        await DBService.clearUserPunishments(user_id);
-        await DBService._usersClient.user.delete({ where: { id: user_id } });
-        await DBService._usersClient.coreUser.delete({
+        await UserDBService.clearUserSessions(user_id);
+        await UserDBService.clearUserPunishments(user_id);
+        await UserDBService.#client.user.delete({
+            where: { id: user_id },
+        });
+        await UserDBService.#client.coreUser.delete({
             where: { id: user_id },
         });
         return user;
@@ -394,7 +418,7 @@ export class DBService {
         session_token: string
     ): Promise<Users.Session | null> {
         try {
-            return await DBService._usersClient.session.delete({
+            return await UserDBService.#client.session.delete({
                 where: {
                     token_hash: Bun.CryptoHasher.hash(
                         "sha384",
@@ -409,10 +433,8 @@ export class DBService {
     }
 
     public static $closeConnections() {
-        DBService._statsClient.$disconnect();
-        DBService._usersClient.$disconnect();
+        UserDBService.#client.$disconnect();
     }
 }
 
-export * as Stats from "../generated/stats-db-client";
 export * as Users from "../generated/users-db-client";
