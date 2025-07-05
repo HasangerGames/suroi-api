@@ -19,8 +19,24 @@
         "authenticationMethod": {
             "description": "Which authentication method to use for database",
             "type": "string",
-            "enum": ["default", "616"],
+            "enum": ["default", "meow"],
             "default": "default"
+        },
+        "trustedServerIPs": {
+            "description": "IP addresses of trusted game servers - with additional authentication, these addresses will be able to modify player stats.",
+            "type": "array",
+            "uniqueItems": true,
+            "default": [],
+            "items": {
+                "type": "string",
+                "format": "ipv4"
+            }
+        },
+        "authServer": {
+            "type": "string",
+            "format": "uri",
+            "default": "http://localhost:6969",
+            "examples": ["http://localhost:6969"]
         },
         "regions": {
             "description": "Game servers.",
@@ -37,5 +53,13 @@
             }
         }
     },
-    "required": ["hostname", "port", "maxNameLen", "authenticationMethod", "regions"]
+    "required": [
+        "hostname",
+        "port",
+        "maxNameLen",
+        "authenticationMethod",
+        "trustedServerIPs",
+        "authServer",
+        "regions"
+    ]
 }

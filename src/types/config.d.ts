@@ -6,34 +6,39 @@
  */
 
 export interface ConfigSchema {
+  /**
+   * The hostname to host the server on.
+   */
+  hostname: string;
+  /**
+   * The port to host the server on.
+   */
+  port: number;
+  /**
+   * Maximum allowed length of player names.
+   */
+  maxNameLen: number;
+  /**
+   * Which authentication method to use for database
+   */
+  authenticationMethod: "default" | "meow";
+  /**
+   * IP addresses of trusted game servers - with additional authentication, these addresses will be able to modify player stats.
+   */
+  trustedServerIPs: string[];
+  authServer: string;
+  /**
+   * Game servers.
+   */
+  regions: {
     /**
-     * The hostname to host the server on.
+     * This interface was referenced by `undefined`'s JSON-Schema definition
+     * via the `patternProperty` ".*".
      */
-    hostname: string;
-    /**
-     * The port to host the server on.
-     */
-    port: number;
-    /**
-     * Maximum allowed length of player names.
-     */
-    maxNameLen: number;
-    /**
-     * Which authentication method to use for database
-     */
-    authenticationMethod: "default" | "616";
-    /**
-     * Game servers.
-     */
-    regions: {
-        /**
-         * This interface was referenced by `undefined`'s JSON-Schema definition
-         * via the `patternProperty` ".*".
-         */
-        [k: string]: {
-            address?: string;
-            [k: string]: unknown;
-        };
+    [k: string]: {
+      address?: string;
+      [k: string]: unknown;
     };
-    [k: string]: unknown;
+  };
+  [k: string]: unknown;
 }
