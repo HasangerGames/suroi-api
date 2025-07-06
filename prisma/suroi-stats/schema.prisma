@@ -36,28 +36,28 @@ model UserStat {
     user_id       String        @id @suroi_stats.Uuid
     matches       Match[]
     match_players MatchPlayer[]
-    achievements  Achievement[]
-    unlocks       Unlock[]
+    // achievements  Achievement[]
+    // unlocks       Unlock[]
     friends       String[]      @suroi_stats.Uuid
     // clans        Clans[]
 }
 
-model Achievement {
-    id           String     @id @suroi_stats.Uuid
-    title        String     @unique
-    description  String
-    requirements Json
-    unlocks      Unlock[]
-    users        UserStat[]
-}
+// model Achievement {
+//     id           String     @id @default(uuid()) @suroi_stats.Uuid
+//     title        String     @unique
+//     description  String
+//     requirements Json
+//     unlocks      Unlock[]
+//     users        UserStat[]
+// }
 
-model Unlock {
-    id             String       @id @suroi_stats.Uuid
-    name           String       @unique
-    users          UserStat[]
-    achievement    Achievement? @relation(fields: [achievement_id], references: [id])
-    achievement_id String       @suroi_stats.Uuid
-}
+// model Unlock {
+//     id             String       @id @default(uuid()) @suroi_stats.Uuid
+//     name           String       @unique
+//     users          UserStat[]
+//     achievement    Achievement? @relation(fields: [achievement_id], references: [id])
+//     achievement_id String       @suroi_stats.Uuid
+// }
 
 model Kill {
     weapon       String
@@ -91,7 +91,6 @@ model Revive {
 }
 
 model Assist {
-    timestamp      DateTime
     assister       MatchPlayer @relation(fields: [match_id, assister_id, assister_count], references: [match_id, user_id, count], onDelete: Cascade)
     match_id       String      @suroi_stats.Uuid
     assister_id    String      @suroi_stats.Uuid
@@ -100,8 +99,7 @@ model Assist {
     killed_id      String      @suroi_stats.Uuid
     killed_count   Int         @suroi_stats.SmallInt
 
-    @@id([match_id, assister_id, killed_id, killed_count])
-    @@unique([match_id, killed_id, killed_count])
+    @@id([match_id, killed_id, killed_count])
 }
 
 model Damage {
@@ -112,11 +110,11 @@ model Damage {
     amount       Int
     weapon       String
 
-    @@id([match_id, user_id, weapon])
+    @@id([match_id, user_id, count, weapon])
 }
 
 model Match {
-    match_id     String        @id @suroi_stats.Uuid
+    match_id     String        @id @default(uuid()) @suroi_stats.Uuid
     region       Region
     mode_id      GameMode
     team_mode    TeamMode
@@ -127,7 +125,9 @@ model Match {
 }
 
 model MatchPlayer {
+    match            Match?   @relation(fields: [match_id], references: [match_id])
     match_id         String   @suroi_stats.Uuid
+    user             UserStat @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
     user_id          String   @suroi_stats.Uuid
     // Count is for when a player gets in the same game more than once.
     count            Int      @default(autoincrement()) @suroi_stats.SmallInt
@@ -141,8 +141,6 @@ model MatchPlayer {
     revived_by       Revive[] @relation(name: "revived_by")
     assists          Assist[]
     damage           Damage[]
-    match            Match?   @relation(fields: [match_id], references: [match_id])
-    user             UserStat @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
 
     @@id([match_id, user_id, count])
 }
