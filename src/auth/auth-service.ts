@@ -2,7 +2,6 @@ import crypto from "crypto";
 import Config from "../../config.json";
 import { UserDBService } from "../db/user-db-service";
 import { AuthenticationMethod } from "../generated/users-db-client";
-import type { ConfigSchema } from "../types/config";
 import type {
     AuthParams,
     AuthResponse,
@@ -10,7 +9,8 @@ import type {
     RegistrationParams,
     RegistrationResponse,
     SaltResponse,
-} from "./auth-types";
+} from "../types/auth";
+import type { ConfigSchema } from "../types/config";
 
 const { authenticationMethod, authServer } = Config as ConfigSchema;
 

@@ -96,10 +96,6 @@ export class UserDBService {
 
     // Read
 
-    public static async userExists(username: string): Promise<boolean> {
-        return UserDBService.getIDFromName(username) !== null;
-    }
-
     public static async getIDFromName(
         username: string
     ): Promise<string | null> {
@@ -110,28 +106,22 @@ export class UserDBService {
             .then(user => user?.id ?? null);
     }
 
-    public static async getIDFromSession(
+    public static async getUserFromSession(
         session_token: string
-    ): Promise<string | null> {
-        return (
-            (
-                await UserDBService.#client.session.findUnique({
-                    where: {
-                        token_hash: Bun.CryptoHasher.hash(
-                            "sha384",
-                            session_token
-                        ).toString(),
-                    },
-                    select: {
-                        user: {
-                            select: {
-                                id: true,
-                            },
-                        },
-                    },
-                })
-            )?.user.id ?? null
-        );
+    ): Promise<Users.User | null> {
+        return await UserDBService.#client.session
+            .findUnique({
+                where: {
+                    token_hash: Bun.CryptoHasher.hash(
+                        "sha384",
+                        session_token
+                    ).toString(),
+                },
+                include: {
+                    user: true,
+                },
+            })
+            .user();
     }
 
     public static async getUserByName(

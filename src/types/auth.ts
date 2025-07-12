@@ -1,6 +1,6 @@
 import { t } from "elysia";
 import Config from "../../config.json";
-import type { ConfigSchema } from "../types/config";
+import type { ConfigSchema } from "./config";
 
 const { maxNameLen } = Config as ConfigSchema;
 
@@ -97,13 +97,3 @@ export const TLoginBody = t.Intersect([
 ]);
 
 export const TRenewTokenQuery = t.Object({ trusted: t.Optional(t.Boolean()) });
-export const TUpdateNameBody = t.String({
-    maxLength: maxNameLen,
-    error: "Name invalid or too long.",
-});
-export const TUpdateEmailBody = t.String({
-    format: "email",
-    error: "Invalid email.",
-});
-
-export const TDeleteUserBody = t.Omit(TLoginBody, ["trusted"]);

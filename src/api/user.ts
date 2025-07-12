@@ -1,15 +1,17 @@
 import { Elysia } from "elysia";
 import { AuthService } from "../auth/auth-service";
+import { UserDBService } from "../db/user-db-service";
 import {
-    TDeleteUserBody,
     TLoginBody,
     TRegisterBody,
     TRenewTokenQuery,
     TSessionCookie,
+} from "../types/auth";
+import {
+    TDeleteUserBody,
     TUpdateEmailBody,
     TUpdateNameBody,
-} from "../auth/auth-types";
-import { UserDBService } from "../db/user-db-service";
+} from "../types/user";
 import getStats from "./stats/get-stats";
 
 export default new Elysia({
@@ -104,17 +106,17 @@ export default new Elysia({
         }
     )
     .put(
-        "/updateName",
+        "/update_name",
         async ({ body, cookie: { session_token }, status }) => {
-            const user_id = await UserDBService.getIDFromSession(
+            const user = await UserDBService.getUserFromSession(
                 session_token.value
             );
-            if (user_id === null) {
+            if (user === null) {
                 return status(400, "Invalid session or user.");
             }
 
             try {
-                UserDBService.updateUsername(user_id, body);
+                UserDBService.updateUsername(user.id, body);
             } catch (e) {
                 return status(400, "User does not exist.");
             }
@@ -124,17 +126,17 @@ export default new Elysia({
         }
     )
     .put(
-        "/updateEmail",
+        "/update_email",
         async ({ body, cookie: { session_token }, status }) => {
-            const user_id = await UserDBService.getIDFromSession(
+            const user = await UserDBService.getUserFromSession(
                 session_token.value
             );
-            if (user_id === null) {
+            if (user === null) {
                 return status(400, "Invalid session or user.");
             }
 
             try {
-                UserDBService.updateEmail(user_id, body);
+                UserDBService.updateEmail(user.id, body);
             } catch (e) {
                 return status(400, "User does not exist.");
             }
