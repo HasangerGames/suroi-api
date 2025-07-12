@@ -1,11 +1,7 @@
-import Elysia, { t } from "elysia";
+import Elysia from "elysia";
 
 interface ServerInfo {}
 
 const serverInfo: Record<string, ServerInfo> = {};
 
-export default new Elysia()
-    .get("/serverInfo", serverInfo)
-    .post("/serverInfo", ({ body }) => {}, {
-        body: t.Object({}),
-    });
+export default new Elysia().get("/server_info", serverInfo);
