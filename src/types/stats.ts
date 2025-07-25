@@ -1,6 +1,43 @@
 import { t } from "elysia";
 import { GameMode, Region, TeamMode } from "../generated/stats-db-client";
 
+export type SortableStat<T> = {
+    gameModes: {
+        [key in Lowercase<GameMode>]: T;
+    } & { unknown: T };
+    teamModes: {
+        [key in Lowercase<TeamMode>]: T;
+    } & { unknown: T };
+};
+
+export const userBasicStatKeys = [
+    // wins all time
+    "wins",
+    // games all time
+    "games",
+    // kills all time
+    "kills",
+    // revives all time
+    "revives",
+    // assists all time
+    "assists",
+    // damage all time
+    "damage",
+    // damage taken all time
+    "damageTaken",
+    // survived time in seconds, all time
+    "timeSurvived",
+    // max damage one game
+    "maxDamage",
+    // max kills one game
+    "maxKills",
+    // max survival time one game in seconds
+    "maxSurvived",
+] as const;
+export type UserBasicStats = SortableStat<
+    Record<(typeof userBasicStatKeys)[number], number>
+>;
+
 export const TUserStatBody = t.Object({
     user_id: t.String(),
 });
@@ -20,6 +57,7 @@ export const TMatchPlayersBody = t.Object({
             user_id: t.String(),
             shots: t.Number(),
             hits: t.Number(),
+            damage_taken: t.Number(),
             won: t.Boolean(),
             time_survived__s: t.Number(),
         })

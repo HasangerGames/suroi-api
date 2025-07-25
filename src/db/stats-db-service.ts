@@ -1,4 +1,6 @@
 import * as Stats from "../generated/stats-db-client";
+import { GameMode, TeamMode } from "../generated/stats-db-client";
+import { userBasicStatKeys, type UserBasicStats } from "../types/stats";
 import { UserDBService } from "./user-db-service";
 
 ["exit", "SIGINT", "SIGUSR1", "SIGUSR2", "uncaughtException"].forEach(e => {
@@ -48,6 +50,7 @@ export class StatDBService {
         user_id: string,
         shots: number,
         hits: number,
+        damage_taken: number,
         won: boolean,
         time_survived__s: number
     ): Promise<Stats.MatchPlayer> {
@@ -65,6 +68,7 @@ export class StatDBService {
                 },
                 shots,
                 hits,
+                damage_taken,
                 won,
                 time_survived__s,
             },
@@ -196,6 +200,93 @@ export class StatDBService {
 
     // Read
 
+    public static async getBasicStats(
+        user_id: string
+    ): Promise<UserBasicStats | null> {
+        const matches = await StatDBService.getUserMatchPlayers(user_id);
+        if (matches === null) {
+            return null;
+        }
+
+        const stats: UserBasicStats = {
+            gameModes: {},
+            teamModes: {},
+        } as UserBasicStats;
+        for (const key of userBasicStatKeys) {
+            for (const mode in GameMode) {
+                stats.gameModes[mode.toLowerCase() as Lowercase<GameMode>][
+                    key
+                ] = 0;
+            }
+            for (const mode in TeamMode) {
+                stats.teamModes[mode.toLowerCase() as Lowercase<TeamMode>][
+                    key
+                ] = 0;
+            }
+        }
+
+        for (const mp of matches) {
+            const modeStat =
+                stats.gameModes[
+                    <Lowercase<GameMode>>mp.match?.mode_id?.toLowerCase() ??
+                        "unknown"
+                ];
+            const teamStat =
+                stats.teamModes[
+                    <Lowercase<TeamMode>>mp.match?.team_mode?.toLowerCase() ??
+                        "unknown"
+                ];
+
+            // wins
+            if (mp.won) {
+                modeStat.wins++;
+                teamStat.wins++;
+            }
+            // games
+            modeStat.games++;
+            teamStat.games++;
+            // kills
+            const kills: number = mp.kills.length;
+            modeStat.kills += kills;
+            teamStat.kills += kills;
+            // revives all time
+            modeStat.revives += mp.revives.length;
+            teamStat.revives += mp.revives.length;
+            // assists all time
+            modeStat.assists += mp.assists.length;
+            teamStat.assists += mp.assists.length;
+            // damage all time
+            const damage: number = mp.damage.reduce(
+                (total, damage) => total + damage.amount,
+                0
+            );
+            modeStat.damage += damage;
+            teamStat.damage += damage;
+            // damage taken all time
+            modeStat.damageTaken += mp.damage_taken;
+            teamStat.damageTaken += mp.damage_taken;
+            // survived time in seconds, all time
+            modeStat.timeSurvived += mp.time_survived__s;
+            teamStat.timeSurvived += mp.time_survived__s;
+            // max damage one game
+            modeStat.maxDamage = Math.max(damage, modeStat.maxDamage);
+            teamStat.maxDamage = Math.max(damage, teamStat.maxDamage);
+            // max kills one game
+            modeStat.maxKills = Math.max(kills, modeStat.maxKills);
+            teamStat.maxKills = Math.max(kills, teamStat.maxKills);
+            // max survival time one game in seconds
+            modeStat.maxSurvived = Math.max(
+                mp.time_survived__s,
+                modeStat.maxSurvived
+            );
+            teamStat.maxSurvived = Math.max(
+                mp.time_survived__s,
+                teamStat.maxSurvived
+            );
+        }
+        return stats;
+    }
+
     public static async getUserMatches(
         user_id: string
     ): Promise<Stats.Match[] | null> {
@@ -211,9 +302,18 @@ export class StatDBService {
             .matches();
     }
 
-    public static async getUserMatchPlayers(
-        user_id: string
-    ): Promise<Stats.MatchPlayer[] | null> {
+    public static async getUserMatchPlayers(user_id: string): Promise<
+        | (Stats.MatchPlayer & {
+              match?: Stats.Match;
+              kills: Stats.Kill[];
+              death?: Stats.Kill;
+              revives: Stats.Revive[];
+              revived_by: Stats.Revive[];
+              assists: Stats.Assist[];
+              damage: Stats.Damage[];
+          })[]
+        | null
+    > {
         return await this.#client.userStat
             .findUnique({
                 where: {
@@ -223,11 +323,16 @@ export class StatDBService {
                     match_players: {
                         include: {
                             match: true,
+                            kills: true,
+                            death: true,
+                            revives: true,
+                            assists: true,
+                            damage: true,
                         },
                     },
                 },
             })
-            .match_players();
+            .then();
     }
 
     public static async getUserKills(

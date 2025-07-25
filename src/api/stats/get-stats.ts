@@ -12,6 +12,9 @@ export default new Elysia({
     .resolve(({ query: { user_id } }) => {
         return { user_id };
     })
+    .get("/basic_stats", async ({ user_id }) => {
+        return await StatDBService.getBasicStats(user_id);
+    })
     .get("/basic_matches", async ({ user_id }) => {
         return await StatDBService.getUserMatches(user_id);
     })

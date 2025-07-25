@@ -65,8 +65,9 @@ export default new Elysia({
         async ({ body }) => {
             for (const {
                 user_id,
-                hits,
                 shots,
+                hits,
+                damage_taken,
                 won,
                 time_survived__s,
             } of body.players) {
@@ -76,6 +77,7 @@ export default new Elysia({
                         user_id,
                         shots,
                         hits,
+                        damage_taken,
                         won,
                         time_survived__s
                     );
