@@ -13,6 +13,7 @@ enum Region {
     SA
     EU
     AS
+    EA
     OC
 }
 
@@ -133,6 +134,7 @@ model MatchPlayer {
     count            Int      @default(autoincrement()) @suroi_stats.SmallInt
     shots            Int // Accuracy
     hits             Int // Accuracy
+    damage_taken     Int
     won              Boolean
     time_survived__s Int
     kills            Kill[]   @relation(name: "killer")
