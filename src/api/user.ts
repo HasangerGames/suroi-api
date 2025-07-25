@@ -22,12 +22,6 @@ export default new Elysia({
         path: "/",
     },
 })
-    .onError(async ({ code, set, error }) => {
-        if (code === "VALIDATION") {
-            set.status = 400;
-            return error.message;
-        }
-    })
     .derive(({ request, server, status }) => {
         const ip = server?.requestIP(request)?.address;
         if (!ip) {
