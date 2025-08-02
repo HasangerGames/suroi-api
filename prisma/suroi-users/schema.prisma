@@ -15,6 +15,9 @@ enum PunishmentType {
 
 enum Role {
     PLAYER
+    TESTER
+    CONTRIBUTOR
+    DEVELOPER
     MODERATOR
     ADMIN
 }
@@ -35,7 +38,7 @@ model User {
     core               CoreUser             @relation(fields: [id], references: [id], onDelete: Cascade)
     id                 String               @id @default(uuid()) @suroi_users.Uuid
     username           String               @unique
-    role               Role                 @default(PLAYER)
+    roles              Role[]               @default([PLAYER])
     email              String               @unique
     email_verified     Boolean              @default(false)
     last_auth_method   AuthenticationMethod

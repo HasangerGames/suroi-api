@@ -27,12 +27,12 @@ export class UserDBService {
         hash_or_rp: string,
         salt?: string,
         session_nonce?: string,
-        role: Users.Role = Users.Role.PLAYER
+        roles: Users.Role[] = [Users.Role.PLAYER]
     ): Promise<Users.User> {
         return await UserDBService.#client.user.create({
             data: {
                 username,
-                role,
+                roles,
                 email,
                 last_auth_method,
                 salt,
@@ -319,13 +319,38 @@ export class UserDBService {
         });
     }
 
-    public static async updateRole(
+    public static async addRole(
         user_id: string,
         new_role: Users.Role
     ): Promise<Users.User> {
         return await UserDBService.#client.user.update({
             where: { id: user_id },
-            data: { role: new_role },
+            data: {
+                roles: {
+                    push: new_role,
+                },
+            },
+        });
+    }
+
+    public static async removeRole(
+        user_id: string,
+        role: Users.Role
+    ): Promise<Users.User | null> {
+        const user = await UserDBService.#client.user.findUnique({
+            where: {
+                id: user_id,
+            },
+        });
+        if (!user) {
+            return null;
+        }
+        const roles = user.roles.filter(item => item !== role);
+        return await UserDBService.#client.user.update({
+            where: { id: user_id },
+            data: {
+                roles,
+            },
         });
     }
 

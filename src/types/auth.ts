@@ -1,8 +1,4 @@
 import { t } from "elysia";
-import Config from "../../config.json";
-import type { ConfigSchema } from "./config";
-
-const { maxNameLen } = Config as ConfigSchema;
 
 export type AuthResult = {
     success: boolean;
