@@ -38,6 +38,10 @@ export type UserBasicStats = SortableStat<
     Record<(typeof userBasicStatKeys)[number], number>
 >;
 
+export const TUserIdsBody = t.Object({
+    session_tokens: t.Array(t.String()),
+});
+
 export const TUserStatBody = t.Object({
     user_id: t.String(),
 });

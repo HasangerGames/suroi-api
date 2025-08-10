@@ -324,7 +324,14 @@ export class UserDBService {
         new_role: Users.Role
     ): Promise<Users.User> {
         return await UserDBService.#client.user.update({
-            where: { id: user_id },
+            where: {
+                id: user_id,
+                NOT: {
+                    roles: {
+                        has: new_role,
+                    },
+                },
+            },
             data: {
                 roles: {
                     push: new_role,

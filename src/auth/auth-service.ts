@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import Config from "../../config.json";
+import { StatDBService } from "../db/stats-db-service";
 import { UserDBService } from "../db/user-db-service";
 import { AuthenticationMethod } from "../generated/users-db-client";
 import type {
@@ -110,6 +111,7 @@ export class AuthService {
 
         try {
             const user_id = (await UserDBService.createUser(...args)).id;
+            await StatDBService.createUserStat(user_id);
             const { token, expires } = await this.generateSession(
                 user_id,
                 false
