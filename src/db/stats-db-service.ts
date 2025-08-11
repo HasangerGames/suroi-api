@@ -23,6 +23,7 @@ export class StatDBService {
         return await this.#client.userStat.create({
             data: {
                 user_id,
+                currency: 0,
             },
         });
     }

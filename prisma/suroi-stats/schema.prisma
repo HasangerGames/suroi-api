@@ -18,13 +18,15 @@ enum Region {
 }
 
 enum GameMode {
-    CLASSIC
-    HARVEST
+    NORMAL
+    FALL
+    HALLOWEEN
+    INFECTION
     HUNTED
+    WINTER
     FIFTY_VS_FIFTY
     DESERT
-    INFECTION
-    WINTER
+    OTHER
 }
 
 enum TeamMode {
@@ -37,6 +39,7 @@ model UserStat {
     user_id       String        @id @suroi_stats.Uuid
     matches       Match[]
     match_players MatchPlayer[]
+    currency      Int
     // achievements  Achievement[]
     // unlocks       Unlock[]
     friends       String[]      @suroi_stats.Uuid

@@ -9,7 +9,6 @@ import {
     TRevivesBody,
     TUserStatBody,
 } from "../../types/stats";
-import getStats from "./get-stats";
 
 export default new Elysia({
     prefix: "/stats",
@@ -26,13 +25,15 @@ export default new Elysia({
         async ({
             body: { region, mode_id, team_mode, start_time, end_time },
         }) => {
-            await StatDBService.createMatch(
-                region,
-                mode_id,
-                team_mode,
-                new Date(start_time),
-                new Date(end_time)
-            );
+            return (
+                await StatDBService.createMatch(
+                    region,
+                    mode_id,
+                    team_mode,
+                    new Date(start_time),
+                    new Date(end_time)
+                )
+            ).match_id;
         },
         { body: TMatchBody }
     )
@@ -62,6 +63,7 @@ export default new Elysia({
                         `Could not create match player with ID ${user_id} in ` +
                             `match with ID ${body.match_id}.`
                     );
+                    throw e;
                 }
             }
         },
@@ -95,6 +97,7 @@ export default new Elysia({
                         "Could not create kill for player with ID " +
                             `${killer_id} in match with ID ${body.match_id}.`
                     );
+                    throw e;
                 }
             }
         },
@@ -126,6 +129,7 @@ export default new Elysia({
                         "Could not create revive for player with ID " +
                             `${reviver_id} in match with ID ${body.match_id}.`
                     );
+                    throw e;
                 }
             }
         },
@@ -155,6 +159,7 @@ export default new Elysia({
                         "Could not create assist for player with ID " +
                             `${assister_id} in match with ID ${body.match_id}.`
                     );
+                    throw e;
                 }
             }
         },
@@ -179,11 +184,11 @@ export default new Elysia({
                         "Could not create damage for player with ID " +
                             `${user_id} in match with ID ${body.match_id}.`
                     );
+                    throw e;
                 }
             }
         },
         {
             body: TDamagesBody,
         }
-    )
-    .use(getStats);
+    );

@@ -2,7 +2,7 @@ import { Elysia, t } from "elysia";
 import { StatDBService } from "../../db/stats-db-service";
 
 export default new Elysia({
-    prefix: "/get",
+    prefix: "/stats",
 })
     .guard({
         query: t.Object({

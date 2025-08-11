@@ -3,6 +3,7 @@ import Config from "../../config.json";
 import { UserDBService } from "../db/user-db-service";
 import type { ConfigSchema } from "../types/config";
 import { TUserIdsBody } from "../types/stats";
+import getStats from "./stats/get-stats";
 import setStats from "./stats/set-stats";
 
 const { trustedServerIPs } = Config as ConfigSchema;
@@ -19,13 +20,13 @@ export default new Elysia({
     })
     .guard({
         headers: t.Object({
-            token: t.String(),
+            Token: t.String(),
         }),
     })
-    .resolve(({ headers: { token }, ip, status }) => {
+    .resolve(({ headers: { Token }, ip, status }) => {
         if (
             !trustedServerIPs.includes(ip) ||
-            token !== process.env.GAME_SERVER_AUTH_TOKEN
+            Token !== process.env.GAME_SERVER_AUTH_TOKEN
         ) {
             return status(401);
         }
@@ -45,4 +46,5 @@ export default new Elysia({
         },
         { body: TUserIdsBody }
     )
-    .use(setStats);
+    .use(setStats)
+    .use(getStats);
