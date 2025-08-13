@@ -39,7 +39,7 @@ export type UserBasicStats = SortableStat<
 >;
 
 export const TUserIdsBody = t.Object({
-    session_tokens: t.Array(t.String()),
+    session_token: t.String(),
 });
 
 export const TUserStatBody = t.Object({
@@ -109,7 +109,7 @@ export const TAssistsBody = t.Object({
 
 export const TDamagesBody = t.Object({
     match_id: t.String(),
-    damages: t.Array(
+    damage: t.Array(
         t.Object({
             user_id: t.String(),
             count: t.Number(),

@@ -31,18 +31,15 @@ export default new Elysia({
             return status(401);
         }
     })
+    .get("/temp_user_id", async ({ ip }) => {
+        return (await UserDBService.createTempUser(ip)).id;
+    })
     .post(
         // Get user IDs for all of the sessions in this game.
-        "/user_ids",
-        async ({ body }) => {
-            const userIds: Record<string, string> = {};
-            for (const token of body.session_tokens) {
-                const user = await UserDBService.getUserFromSession(token);
-                if (user) {
-                    userIds[token] = user.id;
-                }
-            }
-            return userIds;
+        "/get_id",
+        async ({ body: { session_token }, status }) => {
+            const user = await UserDBService.getUserFromSession(session_token);
+            return user?.id ?? status(404);
         },
         { body: TUserIdsBody }
     )

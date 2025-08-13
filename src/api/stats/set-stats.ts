@@ -61,7 +61,7 @@ export default new Elysia({
                 } catch (e) {
                     console.warn(
                         `Could not create match player with ID ${user_id} in ` +
-                            `match with ID ${body.match_id}.`
+                        `match with ID ${body.match_id}.`
                     );
                     throw e;
                 }
@@ -95,7 +95,7 @@ export default new Elysia({
                 } catch (e) {
                     console.warn(
                         "Could not create kill for player with ID " +
-                            `${killer_id} in match with ID ${body.match_id}.`
+                        `${killer_id} in match with ID ${body.match_id}.`
                     );
                     throw e;
                 }
@@ -127,7 +127,7 @@ export default new Elysia({
                 } catch (e) {
                     console.warn(
                         "Could not create revive for player with ID " +
-                            `${reviver_id} in match with ID ${body.match_id}.`
+                        `${reviver_id} in match with ID ${body.match_id}.`
                     );
                     throw e;
                 }
@@ -157,7 +157,7 @@ export default new Elysia({
                 } catch (e) {
                     console.warn(
                         "Could not create assist for player with ID " +
-                            `${assister_id} in match with ID ${body.match_id}.`
+                        `${assister_id} in match with ID ${body.match_id}.`
                     );
                     throw e;
                 }
@@ -170,7 +170,7 @@ export default new Elysia({
     .post(
         "/match_damage",
         async ({ body }) => {
-            for (const { user_id, count, amount, weapon } of body.damages) {
+            for (const { user_id, count, amount, weapon } of body.damage) {
                 try {
                     StatDBService.createDamage(
                         body.match_id,
@@ -182,7 +182,7 @@ export default new Elysia({
                 } catch (e) {
                     console.warn(
                         "Could not create damage for player with ID " +
-                            `${user_id} in match with ID ${body.match_id}.`
+                        `${user_id} in match with ID ${body.match_id}.`
                     );
                     throw e;
                 }
