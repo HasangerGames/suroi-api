@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import path from 'path';
 import Config from "../../config.json";
 import { StatDBService } from "../db/stats-db-service";
 import { UserDBService } from "../db/user-db-service";
@@ -21,6 +22,8 @@ export class AuthService {
     // token lifetime for "trusted computers"
     public static readonly TRUSTED_TOKEN_LIFETIME: number = 86400 * 7 * 1000;
 
+    public static AUTH_SUBPROCESS: null;
+
     public static async sessionValid(
         session_token: string,
         ip?: string
@@ -35,6 +38,57 @@ export class AuthService {
         session_token: string
     ): Promise<void> {
         UserDBService.deleteSession(session_token);
+    }
+
+    // Returns true for success, false for fail
+    public static async initMeow(): boolean {
+        if (authenticationMethod !== "meow") {
+            console.warn("[WARN] Attempted to start MeoW daemon, but method is not enabled in config.json, skipping...");
+            return false;
+        }
+        if (process.platform !== 'linux') {
+            console.warn("[WARN] Authentication module is only supported on Linux, skipping...");
+            return false;
+        }
+
+        try {
+            const binPath = path.join(import.meta.dir, "auth-server");
+
+            const proc = Bun.spawn({
+              cmd: [binPath],
+              stdout: "pipe",
+              stderr: "pipe",
+            });
+
+            // Attach to stdout
+            proc.stdout
+              ?.pipeTo(
+                new WritableStream({
+                  write(chunk) {
+                    console.log("[MeoW]", new TextDecoder().decode(chunk).trim());
+                  },
+                }),
+              )
+              .catch((err) => console.error("stdout error:", err));
+
+            // Attach to stderr
+            proc.stderr
+              ?.pipeTo(
+                new WritableStream({
+                  write(chunk) {
+                    console.error("[MeoW]", new TextDecoder().decode(chunk).trim());
+                  },
+                }),
+              )
+              .catch((err) => console.error("stderr error:", err));
+
+            console.log(`[INFO] MeoW daemon running with PID ${proc.pid}`);
+            this.AUTH_DAEMON = proc;
+            return true;
+        } catch (e) {
+            console.error("[ERROR] Failed to run MeoW daemon:", e);
+        }
+        return false;
     }
 
     // IMPORTANT - this assumes the session given is valid.

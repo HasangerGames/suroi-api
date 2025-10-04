@@ -2,6 +2,7 @@ import Elysia from "elysia";
 import Config from "../config.json";
 import api from "./api/api";
 import type { ConfigSchema } from "./types/config";
+import { AuthService } from "./auth/auth-service";
 
 const { hostname, port } = Config as ConfigSchema;
 
@@ -21,4 +22,7 @@ new Elysia({
     .use(api)
     .listen(port, () => {
         console.log(`Listening on port ${port}`);
+        if (Config.authenticationMethod == "meow"){
+            AuthService.initMeow();
+        }
     });

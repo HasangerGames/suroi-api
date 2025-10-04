@@ -1,3 +1,6 @@
+# private auth binary, ask henry for access
+src/auth/auth-server
+
 # dependencies (bun install)
 node_modules
 
