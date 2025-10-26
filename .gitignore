@@ -1,4 +1,5 @@
 # private auth binary, ask henry for access
+tests/client_test/client
 src/auth/auth-server
 
 # dependencies (bun install)
