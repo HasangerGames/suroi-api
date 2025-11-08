@@ -1,6 +1,8 @@
 # private auth binary, ask henry for access
 tests/client_test/client
 src/auth/auth-server
+prisma/suroi-stats/migrations
+prisma/suroi-users/migrations
 
 # dependencies (bun install)
 node_modules
