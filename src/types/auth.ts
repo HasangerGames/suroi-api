@@ -58,22 +58,33 @@ export const TSessionCookie = t.Cookie(
     }
 );
 
-export const TRegisterBody = t.Intersect([
+export const TRegisterBody = t.Object({
+    username: t.String(),
+    email: t.String(),
+    salt: t.String(),
+    w: t.String(),
+    sh: t.Array(t.String()),
+    ih: t.Array(t.String())
+});
+
+// this assertion seems to have an issue and rejects a valid one as well even
+// when i spam additionalProperties
+/*t.Intersect([
     t.Object({
         username: t.String(),
         email: t.String(),
-    }),
+    }, {additionalProperties: true}),
     t.Union([
         t.Object({
             password: t.String(),
-        }),
+        }, {additionalProperties: true}),
         t.Object({
             w: t.String(),
             sh: t.Array(t.String()),
             ih: t.Array(t.String()),
-        }),
-    ]),
-]);
+        }, {additionalProperties: true}),
+    ], {additionalProperties: true}),
+]);*/
 
 export const TLoginBody = t.Intersect([
     t.Object({

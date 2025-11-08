@@ -130,19 +130,18 @@ export class AuthService {
             ];
         } else {
             // 616 authentication method
-            const { w, sh, ih } = params;
-            let saltRes;
-            try {
-                saltRes = await this.getSalt();
-            } catch (e) {
-                return { success: false, reason: "Authentication error." };
-            }
+            const { w, sh, ih, salt } = params;
 
             const res: RegistrationResponse = (await fetch(
                 authServer + "/register",
                 {
                     method: "POST",
-                    body: JSON.stringify({ w, s_salt: saltRes.salt, sh, ih }),
+                    // a user-generated salt should be fine,
+                    // if a user chooses to modify their
+                    // client to use an insecure salt
+                    // registering an insecure account is their fault
+                    // if not, well, the salt should be OK
+                    body: JSON.stringify({ w: w, s_salt: salt, sh: sh, ih: ih }),
                 }
             ).then(res => res.json())) as RegistrationResponse;
             if (!res.success) {
@@ -158,7 +157,7 @@ export class AuthService {
                 ip,
                 AuthenticationMethod.MEOW,
                 res.rp!,
-                saltRes.salt,
+                salt,
                 res.st!,
             ];
         }

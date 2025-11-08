@@ -29,6 +29,12 @@ export default new Elysia({
         }
         return { ip };
     })
+    .get(
+        "/register/saltshaker",
+        async ({ body, cookie: { session_token }, ip, status }) => {
+            return await AuthService.getSalt();
+        }
+    )
     .post(
         "/register",
         async ({ body, cookie: { session_token }, ip, status }) => {

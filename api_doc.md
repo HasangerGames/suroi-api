@@ -5,22 +5,25 @@
 - /user
     this is public facing, for users to login and register etc
     - /login
-        - GET /login/begin
-            **REQUIRE** body payload for username
-            **RETURN** json with the `salt` and `st`, and `continue` token
-        - GET /login/complete
+        - POST /begin
+            **REQUIRE** body payload for `username`
+            **RETURN** json with the `salt` and `st`
+        - POST /complete
             **REQUIRE** `username`, `w`, `sh`, `ih` as a payload
-            **REQUIRE** `continue token`
-            **RETURN** `token` and `refresh_token` cookie if success
+            **RETURN** `session_token` and `refresh_token` cookie if success
+            this endpoint will only accept requests from those who have called /begin with `username` in the last 5? minutes
     - GET /logout
-        **REQUIRE** `token` cookie
+        **REQUIRE** `session_token` cookie
         **RETURN** 200 or error
     - GET /renew_token
-        **REQUIRE** `token` and `refresh_token` cookie
-        **RETURN** `token` and `refresh_token`
+        **REQUIRE** `session_token` and `refresh_token` cookie
+        **RETURN** `session_token` and `refresh_token`
     - POST /register
-        **REQUIRE** all credentials and info: `username`, `email`, `w`, `sh`, `ih`
-        **RETURN** 200 or error
+        **REQUIRE** `username`, `email`, `w`, `sh`, `ih` as a payload
+        **RETURN** `session_token` and `refresh_token` cookie if success
+        this endpoint will only accept requests from those who have called /begin with `username` in the last 5? minutes
+        - GET /saltshaker
+            **RETURN** quick json with {salt: salt}
     - POST /update
         **REQUIRE** JSON fields that can be further outlined, updates various parts of the user, like email, name, password
     - POST /delete
