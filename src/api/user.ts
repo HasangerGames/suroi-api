@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import { cors } from "@elysiajs/cors";
 import { AuthService } from "../auth/auth-service";
 import { UserDBService } from "../db/user-db-service";
 import {
@@ -13,6 +14,13 @@ import {
     TUpdateNameBody,
 } from "../types/user";
 import getStats from "./stats/get-stats";
+import Config from "../../config.json";
+import type { ConfigSchema } from "../../../types/config";
+const { corsOrigin } = Config as ConfigSchema;
+
+let corsconfig = cors({
+    origin: corsOrigin
+});
 
 export default new Elysia({
     prefix: "/user",
@@ -22,6 +30,7 @@ export default new Elysia({
         path: "/",
     },
 })
+    .use(corsconfig)
     .derive(({ request, server, status }) => {
         const ip = server?.requestIP(request)?.address;
         if (!ip) {

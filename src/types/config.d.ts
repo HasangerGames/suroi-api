@@ -7,6 +7,10 @@
 
 export interface ConfigSchema {
   /**
+   * What domain the client is hosted on, allowlist for requests.
+   */
+  corsOrigin?: string;
+  /**
    * The hostname to host the server on.
    */
   hostname: string;

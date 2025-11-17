@@ -24,7 +24,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@prisma/client": "^6.9.0",
+    "@prisma/client": "^6.19.0",
     "elysia": "^1.3.4"
   }
 }

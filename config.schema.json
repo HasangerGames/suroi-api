@@ -1,6 +1,10 @@
 {
     "type": "object",
     "properties": {
+        "corsOrigin": {
+            "description": "What domain the client is hosted on, allowlist for requests.",
+            "type": "string"
+        },
         "hostname": {
             "description": "The hostname to host the server on.",
             "type": "string"

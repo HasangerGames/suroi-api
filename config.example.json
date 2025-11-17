@@ -3,5 +3,6 @@
     "hostname": "127.0.0.1",
     "port": 8300,
     "authenticationMethod": "meow",
-    "authServer": "http://localhost:6969"
+    "authServer": "http://localhost:6969",
+    "corsOrigin": "http://localhost:3000"
 }
