@@ -6,23 +6,31 @@ import { AuthService } from "./auth/auth-service";
 
 const { hostname, port } = Config as ConfigSchema;
 
-new Elysia({
-    serve: {
-        hostname,
-        ...(process.env.USE_TLS
-            ? {
-                  tls: {
-                      cert: Bun.file(process.env.CERT_PATH!),
-                      key: Bun.file(process.env.KEY_PATH!),
-                  },
-              }
-            : {}),
-    },
-})
-    .use(api)
-    .listen(port, () => {
-        console.log(`Listening on port ${port}`);
-        if (Config.authenticationMethod == "meow"){
-            AuthService.initMeow();
-        }
-    });
+if (!process.env["USERS_DB_URL"] || !process.env["STATS_DB_URL"]) {
+    console.error("FATAL: Environmental variables USERS_DB_URL and STATS_DB_URL are not set, but required for the server to function");
+}
+
+else {
+    new Elysia({
+        serve: {
+            hostname,
+            ...(process.env.USE_TLS
+                ? {
+                      tls: {
+                          cert: Bun.file(process.env.CERT_PATH!),
+                          key: Bun.file(process.env.KEY_PATH!),
+                      },
+                  }
+                : {}),
+        },
+    })
+        .use(api)
+        .listen(port, () => {
+            console.log(`Listening on port ${port}`);
+            if (Config.authenticationMethod == "meow"){
+                AuthService.initMeow();
+            }
+        });
+}
+
+console.log("Server terminated");

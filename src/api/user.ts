@@ -49,7 +49,7 @@ export default new Elysia({
         async ({ body, cookie: { session_token }, ip, status }) => {
             const auth = await AuthService.register({ ...body, ip });
             if (!auth.success) {
-                return status(401, auth.reason);
+                return status(500, auth.reason);
             }
 
             session_token?.set({
