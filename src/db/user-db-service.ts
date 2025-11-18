@@ -51,7 +51,6 @@ export class UserDBService {
         trusted: boolean,
         expires: Date
     ): Promise<Users.Session> {
-        console.log(user_id, session_token, trusted, expires)
         return await UserDBService.#client.session.create({
             data: {
                 user: {
