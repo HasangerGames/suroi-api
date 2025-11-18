@@ -20,6 +20,17 @@ export type AuthParams = {
     | { password: string }
 );
 
+export type AuthBeginParams = {
+    username: string;
+}
+
+export type AuthBeginResult = {
+    success: boolean;
+    reason?: unknown;
+    st?: string;
+    salt?: string;
+}
+
 export type AuthResponse = {
     success: boolean;
     st?: string;
@@ -86,6 +97,20 @@ export const TRegisterBody = t.Object({
     ], {additionalProperties: true}),
 ]);*/
 
+
+export const TLoginBeginBody = t.Object({
+    username: t.String()
+});
+
+export const TLoginCompleteBody = t.Object({
+    username: t.String(),
+    trusted: t.Boolean(),
+    w: t.String(),
+    sh: t.Array(t.String()),
+    ih: t.Array(t.String())
+});
+
+/*
 export const TLoginBody = t.Intersect([
     t.Object({
         username: t.String(),
@@ -101,6 +126,6 @@ export const TLoginBody = t.Intersect([
             ih: t.Array(t.String()),
         }),
     ]),
-]);
+]);*/
 
 export const TRenewTokenQuery = t.Object({ trusted: t.Optional(t.Boolean()) });

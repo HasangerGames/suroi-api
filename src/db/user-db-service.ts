@@ -51,6 +51,7 @@ export class UserDBService {
         trusted: boolean,
         expires: Date
     ): Promise<Users.Session> {
+        console.log(user_id, session_token, trusted, expires)
         return await UserDBService.#client.session.create({
             data: {
                 user: {
@@ -278,11 +279,12 @@ export class UserDBService {
                 core: {
                     update: {
                         where: {
+                            id: user_id,/*
                             NOT: {
                                 ip_addrs: {
                                     has: ip,
                                 },
-                            },
+                            },*/ //there must be a 1-1 key lookup, and this is done via id not by ip??
                         },
                         data: {
                             ip_addrs: {

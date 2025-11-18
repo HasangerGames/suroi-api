@@ -5,6 +5,8 @@ import { StatDBService } from "../db/stats-db-service";
 import { UserDBService } from "../db/user-db-service";
 import { AuthenticationMethod } from "../generated/users-db-client";
 import type {
+    AuthBeginParams,
+    AuthBeginResult,
     AuthParams,
     AuthResponse,
     AuthResult,
@@ -178,7 +180,27 @@ export class AuthService {
         }
     }
 
-    public static async authenticate(params: AuthParams): Promise<AuthResult> {
+//only used by MeoW algo
+    public static async begin_auth(params: AuthBeginParams): Promise<AuthBeginResult> {
+        const { username } = params;
+
+        const user = await UserDBService.getUserByName(username);
+
+        if (!user) {
+            return {
+                success: false,
+                reason: `Could not find user with name ${username} in the database.`
+            }
+        }
+
+        return {
+            success: true,
+            st: user.session_nonce,
+            salt: user.salt
+        }
+    }
+
+    public static async complete_auth(params: AuthParams): Promise<AuthResult> {
         if ("password" in params !== (authenticationMethod === "default")) {
             return { success: false, reason: "Wrong authentication method." };
         }
@@ -239,7 +261,7 @@ export class AuthService {
 
             try {
                 await UserDBService.updateAuthInfo(
-                    username,
+                    user.id,
                     res.rp!,
                     ip,
                     res.st!
@@ -251,6 +273,7 @@ export class AuthService {
                 );
                 return { success: true, token, expires };
             } catch (e) {
+                console.log(e)
                 return {
                     success: false,
                     reason: "Error creating session.",

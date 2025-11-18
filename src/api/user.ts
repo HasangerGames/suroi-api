@@ -3,7 +3,8 @@ import { cors } from "@elysiajs/cors";
 import { AuthService } from "../auth/auth-service";
 import { UserDBService } from "../db/user-db-service";
 import {
-    TLoginBody,
+    TLoginBeginBody,
+    TLoginCompleteBody,
     TRegisterBody,
     TRenewTokenQuery,
     TSessionCookie,
@@ -49,7 +50,7 @@ export default new Elysia({
         async ({ body, cookie: { session_token }, ip, status }) => {
             const auth = await AuthService.register({ ...body, ip });
             if (!auth.success) {
-                return status(500, auth.reason);
+                return status(500, auth);
             }
 
             session_token?.set({
@@ -62,11 +63,25 @@ export default new Elysia({
         }
     )
     .post(
-        "/login",
+        "/login/begin",
         async ({ body, cookie: { session_token }, ip, status }) => {
-            const auth = await AuthService.authenticate({ ...body, ip });
+            const lookup = await AuthService.begin_auth({ ...body, ip });
+            if (!lookup.success) {
+                return status(404, lookup);
+            }
+
+            return lookup;
+        },
+        {
+            body: TLoginBeginBody,
+        }
+    )
+    .post(
+        "/login/complete",
+        async ({ body, cookie: { session_token }, ip, status }) => {
+            const auth = await AuthService.complete_auth({ ...body, ip });
             if (!auth.success) {
-                return status(401, auth.reason);
+                return status(401, auth);
             }
 
             session_token?.set({
@@ -75,7 +90,7 @@ export default new Elysia({
             });
         },
         {
-            body: TLoginBody,
+            body: TLoginCompleteBody,
         }
     )
     .guard({ cookie: TSessionCookie })
